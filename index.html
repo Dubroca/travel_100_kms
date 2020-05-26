@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+		<meta name="description" content="Déconfinement - déplacement : affiche la zone de 100km autour de l'adresse saisie">
+		<meta name="author" content="Mathieu Dubroca">
+		<meta name="google-site-verification" content="u0gm3Cnxy_ic7Im_MMwnclQq7CCMC5ieWxu8fCFw74Q" />
+		<title>Déconfinement : aide au déplacement</title>
+
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
+		integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+		crossorigin=""/>
+
+
+		<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
+		integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
+		crossorigin=""></script>
+
+		<style>
+			body {
+				padding: 20px;
+				margin: 0;
+				}
+				html, body, #map {
+				height: 100%;
+				width: 100vw;
+			}   
+			
+			
+			
+.menuCss {
+	border: 1px solid grey;
+    padding: 2px 0px 0px; 0px;
+    background: white;
+    font: 14px/16px Arial, Helvetica, sans-serif;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+    min-width: 10px;
+}
+
+.zoneDistanceCss {
+	//border: 1px solid grey;
+    padding: 4px;
+    background: white;
+    font: 14px/16px Arial, Helvetica, sans-serif;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 3px;
+    min-width: 15px;
+}	
+
+
+.menuImage {
+	margin: 5px;
+	width:20px;
+	height:20px;
+}	
+
+
+.links{
+    margin-bottom: 10px;
+}	
+		</style>
+
+		<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+		<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>   
+
+	</head>
+	
+	<body class="bg-light">
+	
+		<div class="container" style="border:1px solid rgba(0,140,255,.7); border-radius: 5px;">
+			<div class="py-3 text-center">
+				
+				<form>
+
+					<h3>Mon Périmètre</h3>
+					<span style="font-style:italic">déplacements dans un rayon de 100km</span>
+					<hr/>				
+				
+					<div class="form-group row">
+						<label for="idCityName" class="col-sm-2 col-form-label">Mon logement</label>
+						<div class="col-sm-8">
+
+							<input class="form-control" id="idCityName" placeholder="Saisir l'adresse"> 
+
+						</div>
+						<div class="col-sm-2">
+							<input type="button" class="btn btn-primary btn-block form-control" id="idSearchButton" value="Afficher" onclick="rechercherVille()">
+						</div>
+
+					</div>
+
+				</form>
+
+			
+				<div id="mapid" style="height: 360px;">
+				</div>
+				
+			</div>
+		</div>
+		
+		<footer class="footer mt-auto py-3">
+		  <div class="container">
+			<div class="text-muted" style="text-align:center">
+			
+                
+                        <a href="mailto:dubrocamathieu@gmail.com" target="_blank" title="email">EMAIL</a>
+                        <a href="https://www.linkedin.com/in/mathieu-dubroca/" target="_blank"
+                            title="linkedin">LINKEDIN</a>
+                        <a href="https://github.com/Dubroca?tab=repositories" target="_blank" title="github">GITHUB</a>
+                        <br>
+                        Développé par Mathieu Dubroca
+                    </div>           
+                </footer>					
+			</div>
+		  </div>
+		</footer>
+	
+		<script>
+		
+
+		// ========================= Variables "globales"
+		
+		let req = new XMLHttpRequest();
+
+		let map;							// Variable qui identifiera la carte gérée par LeafLet
+		let circle = null;					// Cercle : périmètre du disque de la zone
+		let circleCenter = null;			// Centre de la zone
+		let circleCurrentPosition = null;	// Position du GPS (extrêmité de la ligne) 
+		
+		let currentLat;						// Latitude courante du GPS
+		let currentLon;						// Longitude courante du GPS
+		let currentLine;					// Ligne graphique qui relie la Position GPS avec l'adresse saisie (circleCurrentPosition à circleCenter)
+		
+		let originLat = null;				// Latitude du centre de la zone (adresse utilisateur)
+		let originLon = null;				// Longitude du centre de la zone (adresse utilisateur)
+		let distance = 0;					// Distance qui sépare la position GPS de l'adresse
+		
+		let positionActivee = false;		// Indique si l'affichage de la position GPS est active
+		let surveillanceActivee = false;	// Indique si l'alarme sonne en dehors de la zone (valide uniquement si positionActive vaut true)
+		let suiviPositionId = null;			// Valeur permettant d'identifier le thread qui reçoit les nouvelles positions GPS du navigateur (permet de l'arrêter)
+		
+		let objGeo = navigator.geolocation; // Objet de géolocalisation retourné par le navigateur Web (si la machine en dispose) : permettra d'avoir la position GPS
+				
+		let alarmSound = document.createElement("audio");	// objet audio qui permettra de jouer le son alarm.wav
+            alarmSound.src = "res/alarm.wav";
+			alarmSound.type = "audio/wav";
+			
+		let alarmTimer = null;				// Timer qui gérera le fichier son à jouer 
+		
+		let urlAddress;						// Si présente dans l'URL, adresse du champ
+			
+			
+		// =========================== Programme principal
+			
+		// Ne s'exécute que quand la page sera chargée
+		$(function() {
+		
+			// Annule l'effet de la touche ENTREE sur les navigateurs autres que tactiles (sinon recharge la page !!!)
+			$('#idCityName').keypress(function(event) {
+				if (event.keyCode == '13') {
+				event.preventDefault();
+				rechercherVille();
+				}
+			});
+			
+			// Récupère l'adresse si présente dans l'URL
+			urlAddress = getUrlParam( "address", "" );
+			if ( urlAddress !== "" ) {
+				urlAddress = decodeURI( urlAddress );
+				urlAddress = urlAddress.replace( /[+]/gi, ' ' );
+				$( "#idCityName" ).val( urlAddress );
+			}
+			
+
+			// =============== ASPECT CARTOGRAPHIQUE
+
+			// Création de la carte
+			map = L.map('mapid').setView([43.70987, -1.053204], 13);
+			L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+				maxZoom: 18
+			}).addTo(map);
+			
+
+			// Ajoute le menu de controle
+			var menu = L.control({position: 'topright'});
+			menu.onAdd = function (map) {
+				var div = L.DomUtil.create('div', 'menuCss' );
+
+				div.id = "idMenu";
+				
+				div.innerHTML += '<div><img id="positionSuivi" class="menuImage" src="res/PositionBarree.png"></div>';
+				div.innerHTML += '<div style="border-top:1px solid"><img id="surveillanceSuivi" class="menuImage" src="res/SurveillanceBarree.png"></div>';
+				
+				return div;
+			};
+			menu.addTo(map);
+			
+
+			// Ajoute la zone de distance
+			var zoneDistance = L.control({position: 'bottomright'});
+			zoneDistance.onAdd = function (map) {
+				var div = L.DomUtil.create( 'div', 'zoneDistanceCss' );
+
+				div.id = "idZoneDistance";
+				div.innerHTML += '<div id="idDistance"></div>';
+				
+				return div;
+			};
+			zoneDistance.addTo(map);			
+
+
+			// ================== GESTION MENUS
+
+			// Par défaut ils sont désactivés et cachés
+			$('#idMenu').hide();
+			$('#idZoneDistance').hide();
+			$('#positionSuivi').hide();
+			$('#surveillanceSuivi').hide();
+			positionActivee = false;
+			surveillanceActivee = false;
+				
+
+			// ============ GPS
+				
+			// S'assure de la présence du GPS et lit la position courante si présent
+			if ( "geolocation" in navigator ) {
+
+				objGeo.getCurrentPosition( function Success( position ) {
+				
+						// Déplace la carte sur le nouveau point
+						currentLat = position.coords.latitude;
+						currentLon = position.coords.longitude;
+						map.panTo( [ position.coords.latitude, position.coords.longitude ], 3 );
+					
+				});
+			} 
+			
+			
+			// ============= Gestion du menu présent dans la carte
+			
+			// Lors du clic sur le bouton positionSuivi...
+			$('#positionSuivi').click( function(event) {
+			
+				if ( $('#positionSuivi').attr( 'src' ) == "res/PositionBarree.png" ) {
+				
+					activerBoutonPosition();
+
+					// Active le suivi de position (grâce à la méthode navigator.geolocation.watchPosition (ci-après)
+					let options = {
+						enableHighAccuracy: true,	// Demande position Haute Précision (GPS)
+						timeout: 5000,				// Temps d'attente max d'une réponse
+						maximumAge: 0				// Age de la donnée fournie : 0 ( = on veut la position présente)
+					};
+
+					suiviPositionId = navigator.geolocation.watchPosition( setCurrentPosition, function( err ) {
+						console.warn('ERROR(' + err.code + '): ' + err.message);
+					}, options);					
+				
+				}
+				else {
+					
+					desactiverBoutonPosition();
+				
+				}
+				
+			});
+
+			// Lors du clic sur le bouton surveillanceSuivi (alarme audio)...
+			$('#surveillanceSuivi').click(function(event) {
+			
+				if ( $('#surveillanceSuivi').attr( 'src' ) == "res/SurveillanceBarree.png" ) {
+				
+					activerBoutonSurveillance();
+				
+				}
+				else {
+				
+					desactiverBoutonSurveillance();
+				
+				}
+			
+			});
+
+
+			// =============== Réception des données asynchrones
+			req.onreadystatechange = function( event ) {
+				if (req.readyState === XMLHttpRequest.DONE ) {
+					if ( req.status === 200 )
+					{
+					
+						let donnees = JSON.parse( req.responseText );
+
+						// Coordonnées
+						try {
+							var Lon = donnees.features[ 0 ].geometry.coordinates[ 0 ];
+							var Lat = donnees.features[ 0 ].geometry.coordinates[ 1 ];
+							console.log( Lat + " " + Lon );
+						}
+						catch (e) {
+							console.log( "erreur" );
+							return;
+						}
+
+						// Déplace la carte sur le nouveau point
+						map.panTo([Lat, Lon], 3);
+
+						// Efface le point de Position précédent
+						if ( circleCurrentPosition != null ) {
+							map.removeLayer( circleCurrentPosition );
+							circleCurrentPosition = null;
+						}
+						
+						// Efface la ligne de vie précédente
+						if ( currentLine != null ) {
+							map.removeLayer( currentLine );
+							currentLine = null;
+						}	
+
+						// Efface cercle précédent : centre et zone
+						if ( circle != null ) map.removeLayer( circle );
+						if ( circleCenter != null ) map.removeLayer( circleCenter );
+
+						// Place nouvelle zone
+						circle = L.circle([Lat, Lon], {radius: 100000, color :'#00FF00'});
+						circle.addTo(map);
+						
+						let circleBounds = circle.getBounds();
+						
+						// Et son centre
+						circleCenter = L.circleMarker([Lat, Lon], {radius: 3, color : 'red' } );
+						circleCenter.addTo(map);
+						
+						// Ajuste le zoom autour de la zone
+						map.fitBounds( circleBounds );
+						
+						// Mémorise le centre
+						originLat = Lat;
+						originLon = Lon;
+						
+						// Configuration menu suite à une recherche d'adresse validée :
+						// - Active le menu
+						// - Active le menu position
+						// - Active le bouton position
+						// - Désactive la surveillance / alarme
+						$('#idMenu').show();
+						$('#positionSuivi').show();
+						activerBoutonPosition();
+						desactiverBoutonSurveillance();
+
+						// Affiche la ligne de Vie
+						tracerLigneDeVie();
+						
+						// Affiche la distance dans le cadre et sonne l'alarme si elle est activée
+						afficherDistanceAlarme();
+						
+					}
+				}
+			}			
+
+			// Si URL contient une adresse, lance une recherche
+			// après 500ms depuis la fin du chargement de la page
+			// OBLIGATION DE PASSER PAR TIMER sinon CORS POLICY bloque
+			if ( urlAddress !== "" ) {
+				
+				setTimeout( function() {
+					rechercherVille();
+					urlAddress = "";
+					}, 1000 );
+			}
+			
+		});
+
+
+		// ===================================================================
+		// =   FONCTIONS
+
+		function rechercherVille() {
+
+			let lieu = document.getElementById( "idCityName" ).value;
+			console.log( lieu );
+			while( lieu[ lieu.length - 1 ] == ' ' ) lieu = lieu.substr( 0, lieu.length - 1 );
+			lieu = lieu.replace( / /g, '+' );
+			
+			console.log( lieu );
+			req.open( "GET", "https://api-adresse.data.gouv.fr/search/?q=" + lieu );
+			req.send();
+			
+		}
+		
+		function setCurrentPosition( position ) {
+		
+			if ( "geolocation" in navigator ) {
+
+					// Efface la position précédente
+					if ( circleCurrentPosition != null ) map.removeLayer( circleCurrentPosition );
+					if ( currentLine != null ) map.removeLayer( currentLine );
+			
+					// Marque le nouveau point
+					currentLat = position.coords.latitude;
+					currentLon = position.coords.longitude;
+					
+					// Trace la ligne de vie avec son extrêmité
+					tracerLigneDeVie();
+					
+					// Afficher distance
+					afficherDistanceAlarme();
+
+					
+			}
+		}
+		
+		function runAlarm() {
+			if ( alarmTimer == null ) {
+
+				// Programme une répétition
+				alarmTimer = setInterval( function() {
+					alarmSound.play();
+				}, 3000 );
+				
+				// Joue une 1ère fois
+				alarmSound.volume = 1.0;	// 100% du volume
+				alarmSound.currentTime = 0;
+				alarmSound.play();
+			}
+		}
+		
+		function stopAlarm() {
+			if ( alarmTimer != null ) clearTimeout( alarmTimer );
+			alarmSound.pause();
+			alarmTimer = null;
+		}
+	
+		function activerBoutonPosition() {
+			positionActivee = true;
+			$('#positionSuivi').attr( 'src', "res/Position.png" );
+			$('#surveillanceSuivi').attr( 'src', "res/SurveillanceBarree.png" );
+			$('#surveillanceSuivi').show();
+
+			// Active la zone de distance
+			$('#idZoneDistance').show();
+		}
+		
+		function desactiverBoutonPosition() {
+			positionActivee = false;
+			surveillanceActivee = false;
+			$('#positionSuivi').attr( 'src', "res/PositionBarree.png" );
+			$('#surveillanceSuivi').attr( 'src', "res/SurveillanceBarree.png" );
+			$('#surveillanceSuivi').hide();	
+			$('#idZoneDistance').hide();
+			
+			// Désactiver la position, désactive aussi la surveillance. On stoppe donc l'éventuelle l'alarme
+			stopAlarm();
+
+			// Désactive le suivi de position
+			if ( suiviPositionId != null ) {
+				navigator.geolocation.clearWatch( suiviPositionId );
+				suiviPositionId = null;
+			}
+			
+			// Efface la trace
+			if ( circleCurrentPosition != null ) {
+				map.removeLayer( circleCurrentPosition );
+				circleCurrentPosition = null;
+			}
+			
+			if ( currentLine != null ) {
+				map.removeLayer( currentLine );
+				currentLine = null;
+			}			
+		}
+		
+		function activerBoutonSurveillance() {
+		
+			surveillanceActivee = true;
+			$('#surveillanceSuivi').attr( 'src', "res/Surveillance.png" );
+
+			if ( distance >= 100000 ) runAlarm();		
+		
+		}
+		
+		function desactiverBoutonSurveillance() {
+		
+			surveillanceActivee = false;
+			$('#surveillanceSuivi').attr( 'src', "res/SurveillanceBarree.png" );
+			stopAlarm();
+		
+		}
+		
+		
+		function tracerLigneDeVie() {
+
+			circleCurrentPosition = L.circleMarker([currentLat, currentLon], {radius: 1, color : 'black' } );
+			circleCurrentPosition.addTo(map);
+		
+			currentLine = new L.Polyline( [ new L.LatLng( originLat, originLon ), new L.LatLng( currentLat, currentLon ) ], {
+				color: 'black',
+				weight: 1,
+				opacity: 0.5,
+				smoothFactor: 1
+			});
+			currentLine.addTo( map );		
+		}
+	
+		function afficherDistanceAlarme() {
+							
+			// Déduit la distance correspondante
+			distance = new L.LatLng( originLat, originLon ).distanceTo( new L.LatLng( currentLat, currentLon ) ).toFixed( 0 );
+			console.log( "Distance : " + distance );
+					
+			distanceKm = distance / 1000;		
+			$( '#idDistance' ).text( distanceKm.toFixed( 0 ) + " km" );
+			if ( distance >= 100000 ) {
+				$( '#idDistance' ).css( 'color', 'red' );
+				$( '#idDistance' ).css( 'font-weight', 'bold' );
+				
+				if ( surveillanceActivee )
+					runAlarm();	
+			}
+			else {
+				$( '#idDistance' ).css( 'color', 'black' );
+				$( '#idDistance' ).css( 'font-weight', 'normal' );
+
+				if ( surveillanceActivee )
+					stopAlarm();						
+			}	
+			
+		}
+		
+		// Ces 2 fonctions permettent d'extraire les variables de l'URL
+		function getUrlVars() {
+			var vars = {};
+			var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+				vars[key] = value;
+			});
+			return vars;
+		}	
+				
+		function getUrlParam(parameter, defaultvalue){
+			var urlparameter = defaultvalue;
+			if(window.location.href.indexOf(parameter) > -1){
+				urlparameter = getUrlVars()[parameter];
+				}
+			return urlparameter;
+		}		
+	
+			
+		</script>
+		
+
+		
+	</body>
+	
+</html>
+
+
+
