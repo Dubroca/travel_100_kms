@@ -65,7 +65,6 @@
     margin-bottom: 10px;
 }	
 		</style>
-
 		<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
 		<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>   
@@ -74,7 +73,7 @@
 	
 	<body class="bg-light">
 	
-		<div class="container" style="border:1px solid rgba(0,140,255,.7); border-radius: 5px;">
+		<!-- <div class="container" style="border:1px solid rgba(0,140,255,.7); border-radius: 5px;"> -->
 			<div class="py-3 text-center">
 				
 				<form>
@@ -98,8 +97,8 @@
 
 				</form>
 
-			
-				<div id="mapid" style="height: 360px;">
+			    <!-- Hauteur de la carte -->
+				<div id="mapid" style="height: 480px;">
 				</div>
 				
 			</div>
@@ -162,7 +161,7 @@
 		// Ne s'exécute que quand la page sera chargée
 		$(function() {
 		
-			// Annule l'effet de la touche ENTREE sur les navigateurs autres que tactiles (sinon recharge la page !!!)
+			// Annule l'effet de la touche ENTREE sur les navigateurs autres que tactiles
 			$('#idCityName').keypress(function(event) {
 				if (event.keyCode == '13') {
 				event.preventDefault();
@@ -328,7 +327,7 @@
 						if ( circle != null ) map.removeLayer( circle );
 						if ( circleCenter != null ) map.removeLayer( circleCenter );
 
-						// Place nouvelle zone
+						// Place nouvelle zone + rayon du cercle à modifier
 						circle = L.circle([Lat, Lon], {radius: 100000, color :'#00FF00'});
 						circle.addTo(map);
 						
